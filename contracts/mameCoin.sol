@@ -1,325 +1,613 @@
-/**
- * Reference Code
- * https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/examples/SimpleToken.sol
+pragma solidity ^0.5.0;
+
+/*
+ * @dev Provides information about the current execution context, including the
+ * sender of the transaction and its data. While these are generally available
+ * via msg.sender and msg.data, they should not be accessed in such a direct
+ * manner, since when dealing with GSN meta-transactions the account sending and
+ * paying for execution may not be the actual sender (as far as an application
+ * is concerned).
+ *
+ * This contract is only required for intermediate, library-like contracts.
  */
+contract Context {
+    // Empty internal constructor, to prevent people from mistakenly deploying
+    // an instance of this contract, which should be used via inheritance.
+    constructor () internal { }
+    // solhint-disable-previous-line no-empty-blocks
 
-pragma solidity ^0.4.24;
+    function _msgSender() internal view returns (address payable) {
+        return msg.sender;
+    }
+
+    function _msgData() internal view returns (bytes memory) {
+        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
+        return msg.data;
+    }
+}
 
 /**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
+ * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
+ * the optional functions; to access them see {ERC20Detailed}.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+/**
+ * @dev Wrappers over Solidity's arithmetic operations with added overflow
+ * checks.
+ *
+ * Arithmetic operations in Solidity wrap on overflow. This can easily result
+ * in bugs, because programmers usually assume that an overflow raises an
+ * error, which is the standard behavior in high level programming languages.
+ * `SafeMath` restores this intuition by reverting the transaction when an
+ * operation overflows.
+ *
+ * Using this library instead of the unchecked operations eliminates an entire
+ * class of bugs, so it's recommended to use it always.
  */
 library SafeMath {
+    /**
+     * @dev Returns the addition of two unsigned integers, reverting on
+     * overflow.
+     *
+     * Counterpart to Solidity's `+` operator.
+     *
+     * Requirements:
+     * - Addition cannot overflow.
+     */
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a, "SafeMath: addition overflow");
 
-  /**
-   * @dev Multiplies two numbers, throws on overflow.
-   */
-  function mul(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    if (a == 0) {
-      return 0;
+        return c;
     }
-    c = a * b;
-    assert(c / a == b);
-    return c;
-  }
 
-  /**
-   * @dev Integer division of two numbers, truncating the quotient.
-   */
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    // uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return a / b;
-  }
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting on
+     * overflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     * - Subtraction cannot overflow.
+     */
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        return sub(a, b, "SafeMath: subtraction overflow");
+    }
 
-  /**
-   * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
-   */
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
+     * overflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     * - Subtraction cannot overflow.
+     *
+     * _Available since v2.4.0._
+     */
+    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
+        uint256 c = a - b;
 
-  /**
-   * @dev Adds two numbers, throws on overflow.
-   */
-  function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    c = a + b;
-    assert(c >= a);
-    return c;
-  }
+        return c;
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on
+     * overflow.
+     *
+     * Counterpart to Solidity's `*` operator.
+     *
+     * Requirements:
+     * - Multiplication cannot overflow.
+     */
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+        // benefit is lost if 'b' is also tested.
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+        if (a == 0) {
+            return 0;
+        }
+
+        uint256 c = a * b;
+        require(c / a == b, "SafeMath: multiplication overflow");
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers. Reverts on
+     * division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return div(a, b, "SafeMath: division by zero");
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
+     * division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     *
+     * _Available since v2.4.0._
+     */
+    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        // Solidity only automatically asserts when dividing by 0
+        require(b > 0, errorMessage);
+        uint256 c = a / b;
+        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * Reverts when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
+        return mod(a, b, "SafeMath: modulo by zero");
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * Reverts with custom message when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     *
+     * _Available since v2.4.0._
+     */
+    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b != 0, errorMessage);
+        return a % b;
+    }
 }
 
 /**
- * @title ERC20
- * @dev Standard ERC20 token interface
- * @dev see https://github.com/ethereum/EIPs/issues/20
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
  */
-contract ERC20 {
-  function totalSupply() public view returns (uint256);
-  function balanceOf(address who) public view returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function approve(address spender, uint256 value) public returns (bool);
-  function allowance(address owner, address spender) public view returns (uint256);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
+contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor () internal {
+        _owner = _msgSender();
+        emit OwnershipTransferred(address(0), _owner);
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(isOwner(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Returns true if the caller is the current owner.
+     */
+    function isOwner() public view returns (bool) {
+        return _msgSender() == _owner;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public onlyOwner {
+        _transferOwnership(newOwner);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     */
+    function _transferOwnership(address newOwner) internal {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
+    }
 }
 
 /**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
+ * @dev Implementation of the {IERC20} interface.
+ *
+ * This implementation is agnostic to the way tokens are created. This means
+ * that a supply mechanism has to be added in a derived contract using {_mint}.
+ * For a generic mechanism see {ERC20Mintable}.
+ *
+ * TIP: For a detailed writeup see our guide
+ * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
+ * to implement supply mechanisms].
+ *
+ * We have followed general OpenZeppelin guidelines: functions revert instead
+ * of returning `false` on failure. This behavior is nonetheless conventional
+ * and does not conflict with the expectations of ERC20 applications.
+ *
+ * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
+ * This allows applications to reconstruct the allowance for all accounts just
+ * by listening to said events. Other implementations of the EIP may not emit
+ * these events, as it isn't required by the specification.
+ *
+ * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
+ * functions have been added to mitigate the well-known issues around setting
+ * allowances. See {IERC20-approve}.
  */
-contract Ownable {
-  address public owner;
+contract ERC20 is Context, IERC20, Ownable {
+    using SafeMath for uint256;
 
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    mapping (address => uint256) private _balances;
 
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  constructor() public {
-    owner = msg.sender;
-  }
+    mapping (address => mapping (address => uint256)) private _allowances;
 
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
+    string public constant name = "mameCoin";
+    string public constant symbol = "MAME";
+    uint8 public constant decimals = 8;
+    uint256 private _totalSupply = 25000000000 * (10 ** uint256(decimals));
 
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    emit OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
-}
-
-/**
- * @title mameCoin
- * @dev see https://mamecoin.jp/
- */
-contract mameCoin is ERC20, Ownable {
-  using SafeMath for uint256;
-
-  mapping(address => uint256) balances;
-  mapping(address => mapping (address => uint256)) internal allowed;
-  mapping(address => uint256) internal lockups;
-
-  string public constant name = "mameCoin";
-  string public constant symbol = "MAME";
-  uint8 public constant decimals = 8;
-  uint256 totalSupply_ = 25000000000 * (10 ** uint256(decimals));
-
-  event Burn(address indexed to, uint256 amount);
-  event Refund(address indexed to, uint256 amount);
-  event Lockup(address indexed to, uint256 lockuptime);
-
-  /**
-   * @dev Constructor that gives msg.sender all of existing tokens.
-   */
-  constructor() public {
-    balances[msg.sender] = totalSupply_;
-    emit Transfer(address(0), msg.sender, totalSupply_);
-  }
-
-  /**
-   * @dev total number of tokens in existence
-   */
-  function totalSupply() public view returns (uint256) {
-    return totalSupply_;
-  }
-
-  /**
-   * @dev Gets the balance of the specified address.
-   * @param _owner The address to query the the balance of.
-   * @return An uint256 representing the amount owned by the passed address.
-   */
-  function balanceOf(address _owner) public view returns (uint256) {
-    return balances[_owner];
-  }
-
-  /**
-   * @dev transfer token for a specified address
-   * @param _to The address to transfer to.
-   * @param _amount The amount to be transferred.
-   */
-  function transfer(address _to, uint256 _amount) public returns (bool) {
-    require(_to != address(0));
-    require(_amount <= balances[msg.sender]);
-    require(block.timestamp > lockups[msg.sender]);
-    require(block.timestamp > lockups[_to]);
-
-    balances[msg.sender] = balances[msg.sender].sub(_amount);
-    balances[_to] = balances[_to].add(_amount);
-    emit Transfer(msg.sender, _to, _amount);
-    return true;
-  }
-
-  /**
-   * @dev Transfer tokens from one address to another
-   * @param _from address The address which you want to send tokens from
-   * @param _to address The address which you want to transfer to
-   * @param _amount uint256 the amount of tokens to be transferred
-   */
-  function transferFrom(address _from, address _to, uint256 _amount) public returns (bool) {
-    require(_to != address(0));
-    require(_amount <= balances[_from]);
-    require(_amount <= allowed[_from][msg.sender]);
-    require(block.timestamp > lockups[_from]);
-    require(block.timestamp > lockups[_to]);
-
-    balances[_from] = balances[_from].sub(_amount);
-    balances[_to] = balances[_to].add(_amount);
-    allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_amount);
-    emit Transfer(_from, _to, _amount);
-    return true;
-  }
-
-  /**
-   * @dev Approve the passed address to spend the specified amount of tokens on behalf of msg.sender.
-   *
-   * Beware that changing an allowance with this method brings the risk that someone may use both the old
-   * and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
-   * race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards:
-   * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-   * @param _spender The address which will spend the funds.
-   * @param _amount The amount of tokens to be spent.
-   */
-  function approve(address _spender, uint256 _amount) public returns (bool) {
-    allowed[msg.sender][_spender] = _amount;
-    emit Approval(msg.sender, _spender, _amount);
-    return true;
-  }
-
-  /**
-   * @dev Function to check the amount of tokens that an owner allowed to a spender.
-   * @param _owner address The address which owns the funds.
-   * @param _spender address The address which will spend the funds.
-   * @return A uint256 specifying the amount of tokens still available for the spender.
-   */
-  function allowance(address _owner, address _spender) public view returns (uint256) {
-    return allowed[_owner][_spender];
-  }
-
-  /**
-   * @dev Burns a specific amount of tokens.
-   * @param _to address The address which is burned.
-   * @param _amount The amount of token to be burned.
-   */
-  function burn(address _to, uint256 _amount) public onlyOwner {
-    require(_amount <= balances[_to]);
-    require(block.timestamp > lockups[_to]);
-    // no need to require value <= totalSupply, since that would imply the
-    // sender's balance is greater than the totalSupply, which *should* be an assertion failure
-
-    balances[_to] = balances[_to].sub(_amount);
-    totalSupply_ = totalSupply_.sub(_amount);
-    emit Burn(_to, _amount);
-    emit Transfer(_to, address(0), _amount);
-  }
-
-  /**
-   * @dev Refund a specific amount of tokens.
-   * @param _to The address that will receive the refunded tokens.
-   * @param _amount The amount of tokens to refund.
-   */
-  function refund(address _to, uint256 _amount) public onlyOwner {
-    require(block.timestamp > lockups[_to]);
-    totalSupply_ = totalSupply_.add(_amount);
-    balances[_to] = balances[_to].add(_amount);
-    emit Refund(_to, _amount);
-    emit Transfer(address(0), _to, _amount);
-  }
-
-  /**
-   * @dev Gets the lockuptime of the specified address.
-   * @param _owner The address to query the the lockup of.
-   * @return An uint256 unixstime the lockuptime which is locked until that time.
-   */
-  function lockupOf(address _owner) public view returns (uint256) {
-    return lockups[_owner];
-  }
-
-  /**
-   * @dev Lockup a specific address until given time.
-   * @param _to address The address which is locked.
-   * @param _lockupTimeUntil The lockuptime which is locked until that time.
-   */
-  function lockup(address _to, uint256 _lockupTimeUntil) public onlyOwner {
-    require(lockups[_to] < _lockupTimeUntil);
-    lockups[_to] = _lockupTimeUntil;
-    emit Lockup(_to, _lockupTimeUntil);
-  }
-
-  /**
-   * @dev airdrop tokens for a specified addresses
-   * @param _receivers The addresses to transfer to.
-   * @param _amount The amount to be transferred.
-   */
-  function airdrop(address[] _receivers, uint256 _amount) public returns (bool) {
-    require(block.timestamp > lockups[msg.sender]);
-    require(_receivers.length > 0);
-    require(_amount > 0);
-
-    uint256 _total = 0;
-
-    for (uint256 i = 0; i < _receivers.length; i++) {
-      require(_receivers[i] != address(0));
-      require(block.timestamp > lockups[_receivers[i]]);
-      _total = _total.add(_amount);
+    /**
+     * @dev Initializes the contract.
+     */
+    constructor () public {
+        _balances[owner()] = _totalSupply;
+        emit Transfer(address(0), owner(), _totalSupply);
     }
 
-    require(_total <= balances[msg.sender]);
-
-    balances[msg.sender] = balances[msg.sender].sub(_total);
-
-    for (i = 0; i < _receivers.length; i++) {
-      balances[_receivers[i]] = balances[_receivers[i]].add(_amount);
-      emit Transfer(msg.sender, _receivers[i], _amount);
+    /**
+     * @dev See {IERC20-totalSupply}.
+     */
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
     }
 
-    return true;
-  }
-
-  /**
-   * @dev distribute tokens for a specified addresses
-   * @param _receivers The addresses to transfer to.
-   * @param _amounts The amounts to be transferred.
-   */
-  function distribute(address[] _receivers, uint256[] _amounts) public returns (bool) {
-    require(block.timestamp > lockups[msg.sender]);
-    require(_receivers.length > 0);
-    require(_amounts.length > 0);
-    require(_receivers.length == _amounts.length);
-
-    uint256 _total = 0;
-
-    for (uint256 i = 0; i < _receivers.length; i++) {
-      require(_receivers[i] != address(0));
-      require(block.timestamp > lockups[_receivers[i]]);
-      require(_amounts[i] > 0);
-      _total = _total.add(_amounts[i]);
+    /**
+     * @dev See {IERC20-balanceOf}.
+     */
+    function balanceOf(address account) public view returns (uint256) {
+        return _balances[account];
     }
 
-    require(_total <= balances[msg.sender]);
-
-    balances[msg.sender] = balances[msg.sender].sub(_total);
-
-    for (i = 0; i < _receivers.length; i++) {
-      balances[_receivers[i]] = balances[_receivers[i]].add(_amounts[i]);
-      emit Transfer(msg.sender, _receivers[i], _amounts[i]);
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address recipient, uint256 amount) public returns (bool) {
+        _transfer(_msgSender(), recipient, amount);
+        return true;
     }
 
-    return true;
-  }
+    /**
+     * @dev See {IERC20-allowance}.
+     */
+    function allowance(address owner, address spender) public view returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /**
+     * @dev See {IERC20-approve}.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function approve(address spender, uint256 amount) public returns (bool) {
+        _approve(_msgSender(), spender, amount);
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20};
+     *
+     * Requirements:
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for `sender`'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+        _transfer(sender, recipient, amount);
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
+        return true;
+    }
+
+    /**
+     * @dev Atomically increases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+        return true;
+    }
+
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `spender` must have allowance for the caller of at least
+     * `subtractedValue`.
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        return true;
+    }
+
+    /**
+     * @dev Moves tokens `amount` from `sender` to `recipient`.
+     *
+     * This is internal function is equivalent to {transfer}, and can be used to
+     * e.g. implement automatic token fees, slashing mechanisms, etc.
+     *
+     * Emits a {Transfer} event.
+     *
+     * Requirements:
+     *
+     * - `sender` cannot be the zero address.
+     * - `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     */
+    function _transfer(address sender, address recipient, uint256 amount) internal {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
+        _balances[recipient] = _balances[recipient].add(amount);
+        emit Transfer(sender, recipient, amount);
+    }
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the `owner`s tokens.
+     *
+     * This is internal function is equivalent to `approve`, and can be used to
+     * e.g. set automatic allowances for certain subsystems, etc.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `owner` cannot be the zero address.
+     * - `spender` cannot be the zero address.
+     */
+    function _approve(address owner, address spender, uint256 amount) internal {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    /**
+     * @dev Creates `amount` tokens and assigns them to `account`, increasing
+     * the total supply.
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements
+     *
+     * - `to` cannot be the zero address.
+     */
+    function mint(address account, uint256 amount) public onlyOwner {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        _totalSupply = _totalSupply.add(amount);
+        _balances[account] = _balances[account].add(amount);
+        emit Transfer(address(0), account, amount);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
+    function burn(address account, uint256 amount) public onlyOwner {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+        _totalSupply = _totalSupply.sub(amount);
+        emit Transfer(account, address(0), amount);
+    }
+
+    /**
+     * @dev Airdrop tokens for specific addresses
+     *
+     * @param accounts The accounts to transfer.
+     * @param amount The amount to be transferred.
+     */
+    function airdrop(address[] memory accounts, uint256 amount) public returns (bool) {
+        require(accounts.length > 0, "ERC20: accounts should not be null");
+        require(amount > 0, "ERC20: amount should be more than zero");
+
+        uint256 _total = 0;
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(accounts[i] != address(0), "ERC20: invalid account address");
+            _total = _total.add(amount);
+        }
+
+        _balances[msg.sender] = _balances[msg.sender].sub(_total, "ERC20: airdrop amount exceeds balance");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _balances[accounts[i]] = _balances[accounts[i]].add(amount);
+            emit Transfer(msg.sender, accounts[i], amount);
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev distribute tokens for a specified addresses
+     *
+     * @param accounts The accounts to transfer.
+     * @param amounts The amounts to be transferred.
+     */
+    function distribute(address[] memory accounts, uint256[] memory amounts) public returns (bool) {
+        require(accounts.length > 0, "ERC20: accounts should not be null");
+        require(amounts.length > 0, "ERC20: amounts should not be null");
+        require(accounts.length == amounts.length, "ERC20: accounts and amounts should be same size");
+
+        uint256 _total = 0;
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(accounts[i] != address(0), "ERC20: invalid account address");
+            require(amounts[i] > 0, "ERC20: amount should be more than zero");
+            _total = _total.add(amounts[i]);
+        }
+
+        _balances[msg.sender] = _balances[msg.sender].sub(_total, "ERC20: distribution amount exceeds balance");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _balances[accounts[i]] = _balances[accounts[i]].add(amounts[i]);
+            emit Transfer(msg.sender, accounts[i], amounts[i]);
+        }
+
+        return true;
+    }
 }

@@ -70,67 +70,6 @@ contract('mameCoin', (accounts) => {
       assert.strictEqual(totalSupply.toNumber(), refundBalance.toNumber());
     });
 
-    it('正しくロックアップできるか', async () => {
-      const now = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
-      const releaseTime = now + 86400;
-      await coin.lockup(accounts[0], releaseTime);
-
-      assert.strictEqual((await coin.lockupOf(accounts[0])).toNumber(), releaseTime);
-
-      const revertMessage = 'VM Exception while processing transaction: revert';
-
-      try {
-        await coin.transfer(accounts[1], 1);
-        throw null;
-      } catch (e) {
-        assert.strictEqual(e.message, revertMessage);
-      }
-
-      try {
-        await coin.transferFrom(accounts[0], accounts[1], 1);
-        throw null;
-      } catch (e) {
-        assert.strictEqual(e.message, revertMessage);
-      }
-
-      try {
-        await coin.burn(accounts[0], 1);
-        throw null;
-      } catch (e) {
-        assert.strictEqual(e.message, revertMessage);
-      }
-
-      try {
-        await coin.refund(accounts[0], 1);
-        throw null;
-      } catch (e) {
-        assert.strictEqual(e.message, revertMessage);
-      }
-    });
-
-    it('正しくロックアップを解放できるか', async () => {
-      const now = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
-      const releaseTime = now + 5;
-      await coin.lockup(accounts[0], releaseTime);
-
-      const revertMessage = 'VM Exception while processing transaction: revert';
-
-      try {
-        await coin.transfer(accounts[1], 1);
-        throw null;
-      } catch (e) {
-        assert.strictEqual(e.message, revertMessage);
-      }
-
-      await new Promise((resolve) => {
-        setTimeout(async () => {
-          const result = await coin.transfer(accounts[1], 1);
-          assert.strictEqual((await coin.balanceOf(accounts[1])).toNumber(), 1);
-          resolve();
-        }, 6000);
-      });
-    });
-
     it('正しくエアドロップできるか -> 正常系', async () => {
       const decimals = await coin.decimals();
       const initialBalance = await coin.balanceOf(accounts[0]);
